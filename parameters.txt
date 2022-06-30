@@ -1,2 +1,0 @@
-"time","firing","ahp","ahp_time","fahp","threshold","firstspike","protocol","condition","lobules","geontype","cell_id"
-
