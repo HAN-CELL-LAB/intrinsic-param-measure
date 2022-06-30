@@ -1,4 +1,4 @@
-function itx2mat(file_name, file_path) 
+function itx2mat(file_name, file_path, dest_path, overwrite_opt) 
 % itx2mat: converting ITX files to MAT files 
 % USAGE
 %     itx2mat -> prompt to open and select 
@@ -6,6 +6,8 @@ function itx2mat(file_name, file_path)
 %     itx2mat({file_1, file_2})
 %     itx2mat(file_name, file_path)
 %     itx2mat({file_1, file_2}, file_path)
+%     itx2mat(file_name, file_path, dest_path)
+%     itx2mat(file_name, file_path, dest_path, 'Y'/'N'/nan)
 % OUPUT 
 %     Converted MAT files are in the same folder as the ITX files. The MAT
 %     files will be a struct
@@ -26,9 +28,21 @@ if ~exist('file_name', 'var')
     
 end 
 
+if ~exist('dest_path', 'var')
+    dest_path = file_path;
+end
+
+if isempty(dest_path)
+   dest_path = file_path;
+end
+
+if ~exist('overwrite_opt', 'var') 
+    overwrite_opt = nan;
+end
+
 if iscell(file_name)
     for fn = 1:length(file_name)
-        itx2mat(file_name{fn}, file_path); 
+        itx2mat(file_name{fn}, file_path, dest_path, overwrite_opt); 
     end
     return; 
 end
@@ -40,12 +54,19 @@ end
 itx_file = fullfile(file_path, file_name); 
 
 file_pref = regexprep(file_name, '.itx$', ''); 
-file_save = fullfile(file_path, [file_pref '.mat']); 
+file_save = fullfile(dest_path, [file_pref '.mat']); 
 
 if exist(file_save, 'file')
     fprintf('The file "%s" has already been converted to MAT file at "%s"\n', itx_file, file_save); 
-    continue_or_not = input('Do you want to overwrite (Y/N)? ', 's');
-    if strcmpi(continue_or_not, 'N'), return; end
+    if isnan(overwrite_opt)
+        continue_or_not = input('Do you want to overwrite (Y/N)? ', 's');
+    else
+        continue_or_not = overwrite_opt;
+    end
+    if strcmpi(continue_or_not, 'N')
+        fprintf('... not overwriting %s.\n', file_save);
+        return; 
+    end
 end
 
 fid = fopen(itx_file,'r'); 
@@ -70,6 +91,7 @@ begin_indices = [begin_indices; length(text_from_file)];
 
 fprintf('Beginning extraction of %s ... \n', itx_file); 
 cur_tic = tic; 
+
 for segment_ind = 1:num_segments
     begin_ind = begin_indices(segment_ind)+1; 
     end_ind = end_indices(segment_ind)-1; 
@@ -91,15 +113,19 @@ for segment_ind = 1:num_segments
     find_SetAxis = split(props(contains(props, 'SetAxis')), {',',';'});
     dt = str2double(find_SetScale{3}); 
     
-    T = nan; 
-    if length(find_SetAxis) >= 3
+    if length(find_SetAxis) >= 3 
         T = str2double(find_SetAxis{3});
     end
 
+    note_msg = ''; 
     if ~isnan(T)
         if abs(T/length(read_data) - dt) > eps
-            error('Mismatch time!');
+            note_msg = sprintf('ERROR::mismatch_time'); 
         end
+    end
+    
+    if ~isempty(note_msg)        
+        fprintf('\t !!! at segment %d -> %s \n', segment_ind, note_msg);
     end
     
     recordings{segment_ind} = struct(...
@@ -107,7 +133,8 @@ for segment_ind = 1:num_segments
         'dt', dt, ...
         'Fs', 1/dt, ...
         'T', T, ...
-        'data', read_data);
+        'data', read_data, ...
+        'note_msg', note_msg);
     
     
 end
@@ -117,5 +144,6 @@ recordings = vertcat(recordings{:});
 save(file_save, 'recordings', 'itx_file'); 
 
 fprintf('\t ... done. Saved as %s. \n\t ... Elapsed time = %.2f seconds.\n', file_save, toc(cur_tic)); 
+
 
 end

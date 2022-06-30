@@ -1,5 +1,29 @@
-function res = calculate_spike_properties(t, Vm, params, stim_info)
+function res = calculate_spike_properties(t, Vm, params, stim_info, dry_run)
 
+%% Initialization and exit if dry run
+res = struct;
+
+res.spike_inds = nan;
+res.num_spikes = nan;
+res.spike_times = nan;
+res.firing_rate = nan;
+res.latency = nan;
+res.all_ISI = nan;
+res.first_ISI = nan;
+res.mean_ISI = nan;
+res.std_ISI = nan;
+res.CV_ISI = nan;
+res.adapt_index = nan;
+
+if ~exist('dry_run', 'var')
+    dry_run = false;
+end
+
+if dry_run
+    return;
+end
+
+%% Process parameters 
 analyze_in_stim = get_field_or_default(params, 'analyze_in_stim', true); 
 peak_prom       = get_field_or_default(params, 'peak_prom', 50);
 min_dist        = get_field_or_default(params, 'min_dist', 1);
@@ -50,7 +74,7 @@ end
 
 if length(res.all_ISI) >= 2
     res.std_ISI = std(res.all_ISI);
-    res.CV_ISI = res.mean_ISI/ res.std_ISI;
+    res.CV_ISI = res.std_ISI / res.mean_ISI;
     res.adapt_index = mean(diff(res.all_ISI) ./ (res.all_ISI(1:end-1) + res.all_ISI(2:end)));
     
 else
@@ -58,6 +82,5 @@ else
     res.CV_ISI = nan;
     res.adapt_index = nan;
 end
-
 
 end

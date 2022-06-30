@@ -1,4 +1,4 @@
-function res = calculate_AP_properties(Vm, ind_AP, dt, params)
+function res = calculate_AP_properties(Vm, ind_AP, dt, params, dry_run)
 % Obtain action potential (AP) properties, including AP amplitude,
 % threshold, rise time, half-height width, fast AHP (minimum Vm after)
 % INPUT:
@@ -36,6 +36,42 @@ function res = calculate_AP_properties(Vm, ind_AP, dt, params)
 %   (2) linear approx rise and fall time in addition to finding time via
 %   indices nearest to compared Vm values 
 
+
+%% Initialization and exit if dry run 
+res = struct;
+
+res.AP_Vm = nan;
+res.AP_ind = nan;
+res.AP_time = nan;
+res.fAHP_Vm = nan;
+res.fAHP_ind = nan;
+res.fAHP_time = nan;
+res.AP_thres_ind = nan;
+res.AP_thres_time = nan;
+res.AP_thres_Vm = nan;
+res.AP_rise_start_time = nan;
+res.AP_rise_stop_time = nan;
+res.AP_rise_start_Vm = nan;
+res.AP_rise_stop_Vm = nan;
+res.AP_rise_time = nan;
+res.AP_fall_start_time = nan;
+res.AP_fall_stop_time = nan;
+res.AP_fall_start_Vm = nan;
+res.AP_fall_stop_Vm = nan;
+res.AP_fall_time = nan;
+res.AP_width_start_time = nan;
+res.AP_width_stop_time = nan;
+res.AP_width_Vm = nan;
+res.AP_width = nan;
+
+if ~exist('dry_run', 'var')
+    dry_run = false;
+end
+
+if dry_run
+    return; 
+end
+
 %% Processing parameters 
 max_tpre    = params.max_tpre; 
 min_dV_dt   = params.min_dV_dt; 
@@ -53,13 +89,10 @@ fall_interp_factor = get_field_or_default(params, 'fall_interp_factor', 100);
 fall_start_APfactor = get_field_or_default(params, 'fall_start_APfactor', 0.9);
 fall_stop_APfactor = get_field_or_default(params, 'fall_stop_APfactor', 0.1);
 
-%% Initialization
-res = struct; 
-
 %% Find amplitude of AP
 res.AP_Vm   = Vm(ind_AP);
 res.AP_ind  = ind_AP;
-res.AP_time = dt * ind_AP;
+res.AP_time = dt * (ind_AP - 1);
 
 %% Find minimum (fast AHP)
 incr_post = ceil(max_tpost/dt); 
@@ -87,6 +120,8 @@ if ~isnan(res.AP_thres_ind)
 else
     res.AP_thres_Vm = nan;
 end
+
+
 
 %% Find rise time of AP 
 if ~isnan(res.AP_thres_ind)
