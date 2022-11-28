@@ -109,15 +109,21 @@ for segment_ind = 1:num_segments
     % X SetAxis bottom,  0.000000000E+00,  1.000000000E+00; SetAxis left, -5.119843750E-09,  5.119843750E-09
     next_begin = begin_indices(segment_ind+1); 
     props = text_from_file(end_ind:next_begin); 
+
     find_SetScale = split(props(contains(props, 'SetScale/P x')), {',',';'});
-    find_SetAxis = split(props(contains(props, 'SetAxis')), {',',';'});
     dt = str2double(find_SetScale{3}); 
     
-    if length(find_SetAxis) >= 3 
-        T = str2double(find_SetAxis{3});
-    end
-
     note_msg = ''; 
+	T = nan;
+	try 
+		find_SetAxis = split(props(contains(props, 'SetAxis')), {',',';'});
+		if length(find_SetAxis) >= 3 
+			T = str2double(find_SetAxis{3});
+		end
+	catch
+		note_msg = 'WARNING::no_time_found';
+	end
+    
     if ~isnan(T)
         if abs(T/length(read_data) - dt) > eps
             note_msg = sprintf('ERROR::mismatch_time'); 
